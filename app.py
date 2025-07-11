@@ -50,8 +50,13 @@ def extraer_productos(palabra):
 def buscar():
     data = request.get_json()
     palabra = data.get("busqueda", "iphone")
+
     resultados = extraer_productos(palabra)
+    print("Palabra buscada:", palabra)
+    print("Resultados encontrados:", resultados)
+
     return jsonify({"resultados": resultados})
+
 
 @app.route('/')
 def home():
