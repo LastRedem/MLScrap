@@ -1,2 +1,3 @@
 Flask
-selenium
+requests
+beautifulsoup4
