@@ -1,64 +1,61 @@
 from flask import Flask, request, jsonify
-import requests
-from bs4 import BeautifulSoup
-import re
+from selenium import webdriver
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.common.by import By
 import os
+import re
+import time
 
 app = Flask(__name__)
 
 def extraer_productos(palabra):
     url = f"https://listado.mercadolibre.com.mx/{palabra.replace(' ', '-')}"
-    headers = {
-        "User-Agent": "Mozilla/5.0"
-    }
 
-    response = requests.get(url, headers=headers)
-    soup = BeautifulSoup(response.text, 'html.parser')
+    chrome_options = Options()
+    chrome_options.add_argument("--headless")  # sin ventana
+    chrome_options.add_argument("--disable-gpu")
+    chrome_options.add_argument("--no-sandbox")
 
-    productos_html = soup.select("div.ui-search-result__content-wrapper")
+    driver = webdriver.Chrome(options=chrome_options)
+    driver.get(url)
+    time.sleep(2)  # espera carga de JS
 
     productos = []
+    tarjetas = driver.find_elements(By.CSS_SELECTOR, "div.ui-search-result__content-wrapper")
 
-    for producto in productos_html:
+    for tarjeta in tarjetas:
         try:
-            titulo = producto.select_one("h2.ui-search-item__title").text.strip()
-            url_producto = producto.select_one("a.ui-search-link")["href"]
-            precio = producto.select_one("span.andes-money-amount__fraction").text.strip()
+            titulo = tarjeta.find_element(By.CSS_SELECTOR, "h2.ui-search-item__title").text
+            precio = tarjeta.find_element(By.CSS_SELECTOR, "span.andes-money-amount__fraction").text
+            link = tarjeta.find_element(By.CSS_SELECTOR, "a.ui-search-link").get_attribute("href")
         except:
             continue
 
         try:
-            descuento_raw = producto.select_one("span.andes-money-amount__discount")
-            descuento = descuento_raw.text.strip() if descuento_raw else "0% OFF"
+            descuento = tarjeta.find_element(By.CSS_SELECTOR, "span.andes-money-amount__discount").text
         except:
             descuento = "0% OFF"
 
-        # Extraer número del descuento
         match = re.search(r"(\d+)", descuento)
         porcentaje = int(match.group(1)) if match else 0
 
         if porcentaje >= 30:
-            productos.append(f"📱 {titulo}\n💰 ${precio}\n🎯 {descuento}\n🔗 {url_producto}")
+            productos.append(f"📱 {titulo}\n💰 ${precio}\n🎯 {descuento}\n🔗 {link}")
 
+    driver.quit()
     return productos
-
 
 @app.route('/buscar', methods=['POST'])
 def buscar():
     data = request.get_json()
     palabra = data.get("busqueda", "iphone")
-
     resultados = extraer_productos(palabra)
-    print("Palabra buscada:", palabra)
-    print("Resultados encontrados:", resultados)
-
     return jsonify({"resultados": resultados})
-
 
 @app.route('/')
 def home():
-    return "Servidor funcionando con BeautifulSoup"
+    return "Servidor con Selenium funcionando"
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port)
+    app.run(host='0.0.0.0', port=port)
