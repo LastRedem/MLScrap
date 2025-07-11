@@ -41,8 +41,8 @@ def extraer_productos(palabra):
         match = re.search(r"(\d+)", descuento)
         porcentaje = int(match.group(1)) if match else 0
 
-        if porcentaje > 30:
-            productos.append(f"📱 {titulo}\n💰 ${precio}\n🎯 {descuento}\n🔗 {url_producto}")
+        # if porcentaje > 30:
+        #     productos.append(f"📱 {titulo}\n💰 ${precio}\n🎯 {descuento}\n🔗 {url_producto}")
 
     return productos
 
