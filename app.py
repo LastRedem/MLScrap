@@ -15,21 +15,17 @@ def extraer_productos(palabra):
     response = requests.get(url, headers=headers)
     soup = BeautifulSoup(response.text, 'html.parser')
 
-    productos_html = soup.select("li.ui-search-layout__item")
+    productos_html = soup.select("div.ui-search-result__content-wrapper")
 
     productos = []
 
     for producto in productos_html:
         try:
-            titulo = producto.select_one("a.ui-search-item__group__element").text.strip()
-            url_producto = producto.select_one("a.ui-search-item__group__element")["href"]
-        except:
-            continue
-
-        try:
+            titulo = producto.select_one("h2.ui-search-item__title").text.strip()
+            url_producto = producto.select_one("a.ui-search-link")["href"]
             precio = producto.select_one("span.andes-money-amount__fraction").text.strip()
         except:
-            precio = "No disponible"
+            continue
 
         try:
             descuento_raw = producto.select_one("span.andes-money-amount__discount")
@@ -41,10 +37,11 @@ def extraer_productos(palabra):
         match = re.search(r"(\d+)", descuento)
         porcentaje = int(match.group(1)) if match else 0
 
-        # if porcentaje > 30:
-        #     productos.append(f"📱 {titulo}\n💰 ${precio}\n🎯 {descuento}\n🔗 {url_producto}")
+        if porcentaje >= 30:
+            productos.append(f"📱 {titulo}\n💰 ${precio}\n🎯 {descuento}\n🔗 {url_producto}")
 
     return productos
+
 
 @app.route('/buscar', methods=['POST'])
 def buscar():
